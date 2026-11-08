@@ -1,0 +1,112 @@
+HAZARD VISION LANDING SYSTEM  -  ARDUINO ROUTE (detection + landing console)
+============================================================================
+A phone camera looks down at a "Mars yard". The laptop finds ANYTHING that is not smooth, empty ground, outlines each object with its true
+shape (round things stay round), and places a round LANDING ZONE in the best empty space and SECURES it at once, however many objects are
+on the yard. The Arduino landing console (LEDs, buzzer, servo arrow, distance sensor) lands on it: your hand over the sensor is the lander.
+
+WHAT CHANGED IN THIS VERSION
+  - It calibrates ITSELF the first time (and again if the camera is bumped or the lighting changes a lot). Objects that are already on the yard
+    are recognised and stay detected, so you never have to babysit calibration. Detected objects do not blink: they appear in about 2 frames
+    and only clear after about half a second of calm.
+  - The best landing spot is secured immediately (about a quarter of a second), even with many objects on the yard. The ring shrinks to fit a
+    tight gap. Only a completely full yard says NO SAFE SITE.
+  - The distance sensor is filtered (median of 5 pings, dropout hold, debounce and hysteresis) so a hand over it no longer makes the console
+    flip between LOCKED and DESCEND. IMPORTANT: the old sketch also used pin 13 (the sensor's ECHO pin) as a heartbeat LED, which disturbs the
+    sensor. That is removed. RE-UPLOAD landing_console.ino.
+  - The program survives a lost camera signal and a pulled Arduino cable (it reconnects by itself).
+
+FILES
+  landing_console\landing_console.ino   the Arduino program (re-upload it: it changed)
+  1_ .. 6_*.bat                         double-click these in order; 5b is detection only, no Arduino needed
+  settings.bat                          your COM port and camera number (edit with Notepad)
+  hazard_sw.py, detector.py             the program (you never need to open them)
+
+------------------------------------------------------------------------------------------------------------------
+PART 1 - WIRE THE ARDUINO (USB unplugged while wiring; every GND to the same rail)
+  D6   buzzer + leg (other leg GND)
+  D7   green LED  via 330 ohm on the long leg, short leg GND
+  D8   yellow LED via 330 ohm on the long leg, short leg GND
+  D10  red LED    via 330 ohm on the long leg, short leg GND
+  D9   servo signal (orange/yellow); servo red = 5V, brown = GND
+  HC-SR04 distance sensor pointing UP:  VCC 5V, GND, TRIG D12, ECHO D13
+  D2   not used
+
+PART 2 - PUT THE PROGRAM ON THE ARDUINO
+  1. Plug the Arduino into the laptop. Open the Arduino IDE.
+  2. File > Open... > landing_console > landing_console.ino
+  3. Tools > Board > Arduino AVR Boards > Arduino Uno.   Tools > Port > your port (e.g. COM5).
+  4. Click Upload (right arrow). Wait for "Done uploading". The LEDs chase and it beeps = it works.
+  5. CLOSE the Serial Monitor if it is open (it blocks the USB port for the laptop).
+
+PART 3 - INSTALL AND TEST
+  1. Open settings.bat with Notepad (right-click > Edit). Set COMPORT=... Save and close.
+  2. Double-click 1_install_and_check.bat. It must end with "self-test OK".
+  3. Double-click 3_test_arduino.bat: the Arduino plays a fake landing: SEARCH (yellow scan blink, radar pings) -> LOCKED (green lock-on strobe)
+     -> DESCEND (green/yellow chase, buzzer climbs in pitch) -> TOUCHDOWN (fanfare) -> ABORT (siren, red/yellow strobe, servo shakes).
+  4. Double-click 4_test_sensor.bat and wave your hand 5-35 cm above the sensor: alt= numbers appear.
+     (No sensor? In the video window press j / k to pretend your hand goes lower / higher, 0 to stop.)
+
+PART 4 - THE CAMERA
+  1. Put the phone on a stand looking straight DOWN at the yard (plain surface, evenly lit, no moving shadows, no glare). Do not move it afterwards.
+  2. Install Camo on the phone and Camo Studio on the laptop. Same Wi-Fi (or the phone's hotspot for both, or a USB cable).
+  3. In Camo Studio: 720p, and LOCK focus, exposure and white balance.
+  4. Double-click 2_find_camera.bat. Open camera_0.jpg, camera_1.jpg ... find the one from the phone, put its number in settings.bat (CAMERA=...).
+     If it will not open later, change the DSHOW line to:  set DSHOW=--dshow
+
+PART 5 - SET UP THE DETECTOR (optional: it works on its own, these two steps just make it better)
+  Double-click 5b_vision_only_no_arduino.bat (or 5_start_demo.bat). The first time, the top bar says AUTO-CALIBRATING for about a second.
+  1. YARD (recommended): press  Y,  click the 4 corners of your yard on the picture, press ENTER. Everything outside the yard is ignored
+     (table edge, floor, people walking past). Press U to remove it again.
+  2. CALIBRATION is automatic. For the very best precision, take everything off the yard and press  C  once. Even if you forget, objects that
+     were on the yard stay detected. Press C again after you move the camera or change the lighting a lot (it also does this by itself if the
+     picture changes drastically for a few seconds). X forgets the calibration.
+
+PART 6 - READING THE SCREEN
+  Red shapes      every object, outlined with its true shape: balls and round things are drawn as exact circles / ovals, boxes and rocks as smooth
+                  outlines. There are no boxes drawn over round things.
+  Green ring      the LANDING ZONE: the centre of the largest empty circle. Amber and spinning = ACQUIRING, solid green = SECURED (a fraction of a
+                  second later, or as soon as the Arduino says LOCKED). Faint dashed circle around it = how much empty space there is. The ring
+                  shrinks to fit a tight gap. It turns RED and says BLOCKED the moment anything touches it, and moves to the next best spot.
+                  Only a completely full yard says NO SAFE SITE.
+  Top bar         lander state (from the Arduino), calibration status, altitude (your hand). Right side: altitude ladder with START and TOUCH lines.
+  Bottom bar      object count, how much of the yard is covered, free space around the landing zone, frames per second, current view, SITE quality meter.
+  Views (M)       detection / clean video / heat map (what the detector sees: bright = not like the empty yard) / mask.
+  Grid (G)        the 16 x 9 cell map the Arduino uses + a servo scale showing which column the arrow points at.
+  The landing zone sticks to its spot and only moves when a clearly better place appears. While you are descending it is frozen, so a rock
+  dropped on it triggers the ABORT.
+
+PART 7 - RUN THE DEMO
+  1. Double-click 5_start_demo.bat (it closes any old copy first). Make sure Yard and Calibration are done (they are remembered).
+  2. Put objects on the yard: the red outlines appear within a moment and the landing zone moves to the largest empty space.
+  3. Lower your hand over the distance sensor and hold it a moment: below 28 cm = DESCEND (lights chase, buzzer climbs). Below 12 cm the lights
+     flash together. Below 7 cm = TOUCHDOWN (fanfare). To cancel a descent lift your hand above about 36 cm for a moment.
+  4. ABORT: start a descent, then drop an object onto the green ring. The ring turns red, siren, red/yellow strobe, servo shakes.
+  5. Raise your hand above 30 cm for half a second to re-arm after a touchdown or an abort. Q quits.
+  6. 6_make_report.bat makes a report page (numbers + chart) of the run.
+
+KEYS
+  c calibrate   x forget calibration   y set the yard (click corners, ENTER)   u clear the yard   m view   g grid   space pause
+  + / -  sensitivity (+ = fewer hazards, - = more)     j / k  pretend hand lower / higher (0 stop)     h hide text   f full screen   s screenshot   q quit
+
+TUNING TIPS
+  Too many red outlines on empty ground     press C on a completely empty yard; check Camo has focus/exposure/white balance LOCKED; remove glare; press +
+  A real object is missed                   press - ; press C again; use the heat map view (M) to see what the detector notices; add light
+  Objects outside the yard show up          set the yard (Y)
+  Landing zone jumps around                 that means the scene is changing: check for moving shadows or a camera that is auto-adjusting
+  Slow picture                              the number next to FPS should be 20 or more; close other programs; or use --proc 480x270 in 5_start_demo.bat
+
+DISTANCE SENSOR TIPS (HC-SR04)
+  - VCC must go to 5V (not 3.3V), GND to the shared GND, TRIG to D12, ECHO to D13. Pin 13 must have nothing else on it.
+  - Point it straight UP with clear space above (no shelves or cables within 50 cm). Use a FLAT hand 10-30 cm above it; fingers pointing at it or
+    a hand closer than 3 cm can give bad readings. The console now ignores occasional bad readings, but a very bad setup still hurts.
+  - Keep its 4 wires short and firmly seated. A loose wire is the most common cause of a jumpy sensor.
+  - Without a sensor you can still test: press j / k in the video window to pretend the hand goes lower / higher, 0 to stop.
+
+TROUBLESHOOTING
+  Console flips between LOCKED and DESCEND   re-upload the new landing_console.ino; check the sensor wiring above
+  Sits in SEARCH and does not lock           it locks as soon as a spot is offered; if the ring says NO SAFE SITE the yard is completely full
+                                             (remove something, or set a smaller yard polygon / check the yard is not covered by the table edge)
+  "could not open camera"                  close other apps using the camera, try another CAMERA number, or set DSHOW=--dshow
+  "Another Hazard Vision is already running"   close the old video window and its black window (5_start_demo.bat does this for you)
+  "Access denied / port busy"               close the Arduino Serial Monitor and any program using the COM port; unplug and replug the USB cable
+  Arduino does not react                    check COMPORT in settings.bat matches Tools > Port; re-upload landing_console.ino
