@@ -1,0 +1,3 @@
+C:/Temp/zybo-10-sw/ws/Zybo-Z7-10-HDMI/build/CMakeFiles/Zybo-Z7-10-HDMI.elf.dir
+C:/Temp/zybo-10-sw/ws/Zybo-Z7-10-HDMI/build/CMakeFiles/edit_cache.dir
+C:/Temp/zybo-10-sw/ws/Zybo-Z7-10-HDMI/build/CMakeFiles/rebuild_cache.dir
